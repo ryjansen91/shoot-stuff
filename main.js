@@ -20,7 +20,7 @@ body.addEventListener("mousedown", (event)=> {
   timer = this.setInterval(() => {
     if (stop) return;
     createThing(event);
-  }, 150);
+  }, 80);
 
   mouseMove = (event) => {
     clickX = event.clientX;

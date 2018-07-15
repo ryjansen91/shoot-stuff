@@ -113,22 +113,22 @@ moveLeft = (moveValue) => {
   }
 }
 
+moveUp = (moveValue) => {
+  let currentY = player.getAttribute("cy")
+  let circleRadius = player.getAttribute("r")
+  if (currentY > parseFloat(circleRadius)) {
+    player.setAttribute("cy", parseFloat(currentY)-moveValue) //subtract 1 to move up in SVG
+  } else {
+    return;
+  }
+}
+
 moveRight = (moveValue) => {
   let [viewBoxX,viewBoxY,viewBoxWidth,viewBoxHeight] = svg.getAttribute("viewBox").split(" ")
   let circleRadius = player.getAttribute("r")
   let currentX = player.getAttribute("cx")
   if (currentX < (viewBoxWidth-circleRadius)) {
     player.setAttribute("cx", parseFloat(currentX)+moveValue)
-  } else {
-    return;
-  }
-}
-
-moveUp = (moveValue) => {
-  let currentY = player.getAttribute("cy")
-  let circleRadius = player.getAttribute("r")
-  if (currentY > parseFloat(circleRadius)) {
-    player.setAttribute("cy", parseFloat(currentY)-moveValue) //subtract 1 to move up in SVG
   } else {
     return;
   }
@@ -145,7 +145,7 @@ moveDown = (moveValue) => {
   }
 }
 
-moveThing = (thing, timestamp, event, deltaY, deltaX) => {
+moveThing = (thing, timestamp, event, changeY, changeX) => {
 
   let [viewBoxX,viewBoxY,viewBoxWidth,viewBoxHeight] = svg.getAttribute("viewBox").split(" ")
 
@@ -158,19 +158,12 @@ moveThing = (thing, timestamp, event, deltaY, deltaX) => {
     document.getElementById('svg').removeChild(thing)
     return
   }
-  let atangent = Math.atan(deltaY/deltaX);
-  let changeY = Math.sin(atangent);
-  let changeX = Math.cos(atangent);
-  if (deltaX < 0) {
-    changeX = 0 - parseFloat(changeX)
-    changeY = 0 - parseFloat(changeY)
-  }
   thing.setAttribute("cx", parseFloat(thing.getAttribute("cx"))+(3*parseFloat(changeX)))
   thing.setAttribute("cy", parseFloat(thing.getAttribute("cy"))+(3*parseFloat(changeY)))
-  detectCollisions(currentX, currentY, thing, timestamp, deltaY, deltaX)
+  detectCollisions(currentX, currentY, thing)
   .then(() => {
     requestAnimationFrame((timestamp) => {
-      moveThing(thing, timestamp, event, deltaY, deltaX)
+      moveThing(thing, timestamp, event, changeY, changeX)
     })
   })
   .catch((err) => {
@@ -192,22 +185,27 @@ createThing = (event) => {
   bulletCount ++
   svg.prepend(thing);
 
-  // let {clientX, clientY} = event
-  var clientHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+  // var clientHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
   var clientWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
   let [viewBoxX,viewBoxY,viewBoxWidth,viewBoxHeight] = svg.getAttribute("viewBox").split(" ")
   let percentX = clickX/clientWidth
   let percentY = clickY/(clientWidth/(viewBoxWidth/viewBoxHeight))
   let deltaY = ((percentY*viewBoxHeight)-player.getAttribute("cy"));
   let deltaX = ((percentX*viewBoxWidth)-player.getAttribute("cx"));
-  
+  let atangent = Math.atan(deltaY/deltaX);
+  let changeY = Math.sin(atangent);
+  let changeX = Math.cos(atangent);
+  if (deltaX < 0) {
+    changeX = 0 - parseFloat(changeX)
+    changeY = 0 - parseFloat(changeY)
+  }
 
   requestAnimationFrame((timestamp) => {
-    moveThing(thing, timestamp, event, deltaY, deltaX)
+    moveThing(thing, timestamp, event, changeY, changeX)
   })
 }
 let recentHits = []
-detectCollisions = (currentX, currentY, thing, timestamp, deltaY, deltaX) => { 
+detectCollisions = (currentX, currentY, thing) => { 
   return new Promise((resolve, reject) => {
     Array.from(enemies).forEach((each) => {
       let enemyX = each.getAttribute("cx");
@@ -233,7 +231,7 @@ detectCollisions = (currentX, currentY, thing, timestamp, deltaY, deltaX) => {
           if (enemiesLeft.length === 0) {
             let [viewBoxX,viewBoxY,viewBoxWidth,viewBoxHeight] = svg.getAttribute("viewBox").split(" ")
             if ((viewBoxWidth) < 400) {
-              svg.setAttribute("viewBox", `${viewBoxX} ${viewBoxY} ${viewBoxWidth*1.3} ${viewBoxHeight*1.3}`);
+              svg.setAttribute("viewBox", `${viewBoxX} ${viewBoxY} ${parseInt(viewBoxWidth*1.3)} ${parseInt(viewBoxHeight*1.3)}`);
               player.setAttribute("cx", viewBoxWidth)
               player.setAttribute("cy", viewBoxHeight)
               generateEnemies();
