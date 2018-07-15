@@ -146,6 +146,7 @@ moveDown = (moveValue) => {
 }
 
 moveThing = (thing, timestamp, event, deltaY, deltaX) => {
+
   let [viewBoxX,viewBoxY,viewBoxWidth,viewBoxHeight] = svg.getAttribute("viewBox").split(" ")
 
   let circleRadius = thing.getAttribute("r")
@@ -166,13 +167,19 @@ moveThing = (thing, timestamp, event, deltaY, deltaX) => {
   }
   thing.setAttribute("cx", parseFloat(thing.getAttribute("cx"))+(3*parseFloat(changeX)))
   thing.setAttribute("cy", parseFloat(thing.getAttribute("cy"))+(3*parseFloat(changeY)))
-  detectCollisions(currentX, currentY, thing, timestamp);
-  requestAnimationFrame((timestamp) => {
-    moveThing(thing, timestamp, event, deltaY, deltaX)
+  detectCollisions(currentX, currentY, thing, timestamp, deltaY, deltaX)
+  .then(() => {
+    requestAnimationFrame((timestamp) => {
+      moveThing(thing, timestamp, event, deltaY, deltaX)
+    })
   })
+  .catch((err) => {
+    console.log('err', err)
+    window.cancelAnimationFrame(timestamp);
+  });
 
 }
-
+let bulletCount = 0
 createThing = (event) => {
 
   var svg = document.getElementById('svg');
@@ -181,7 +188,8 @@ createThing = (event) => {
   thing.setAttribute("cx", parseFloat(player.getAttribute("cx")))
   thing.setAttribute("cy", parseFloat(player.getAttribute("cy")))
   thing.setAttribute("fill", bulletColor)
-  thing.setAttribute("id", "thing")
+  thing.setAttribute("id", bulletCount)
+  bulletCount ++
   svg.prepend(thing);
 
   // let {clientX, clientY} = event
@@ -198,34 +206,53 @@ createThing = (event) => {
     moveThing(thing, timestamp, event, deltaY, deltaX)
   })
 }
-
-detectCollisions = (currentX, currentY, thing, timestamp) => {
-  Array.from(enemies).forEach((each) => {
-    let enemyX = each.getAttribute("cx");
-    let enemyY = each.getAttribute("cy");
-    let enemyRadius = each.getAttribute("r");
-    let thingRadius = thing.getAttribute("r");
-    let nodeListId = Array.from(svg.childNodes).filter((node) => node.id && node.id !== ("player") && node.id !== ("thing")).map((node) => node.id)
-    if (Math.abs(enemyX-currentX) <= (parseInt(enemyRadius)+parseInt(thingRadius)) &&
-    Math.abs(enemyY-currentY) <= (parseInt(enemyRadius)+parseInt(thingRadius))) {
-      if (nodeListId.includes(each.id)) {
-        // svg.style.backgroundColor = each.getAttribute("fill")
-        // bulletColor = randColor();
-        svg.removeChild(each);
-        svg.removeChild(thing);
-        if (nodeListId.length === 1) {
-          let [viewBoxX,viewBoxY,viewBoxWidth,viewBoxHeight] = svg.getAttribute("viewBox").split(" ")
-          if ((viewBoxWidth) < 500) {
-            svg.setAttribute("viewBox", `${viewBoxX} ${viewBoxY} ${viewBoxWidth*1.5} ${viewBoxHeight*1.5}`);
-            player.setAttribute("cx", viewBoxWidth)
-            player.setAttribute("cy", viewBoxHeight)
+let recentHits = []
+detectCollisions = (currentX, currentY, thing, timestamp, deltaY, deltaX) => { 
+  return new Promise((resolve, reject) => {
+    Array.from(enemies).forEach((each) => {
+      let enemyX = each.getAttribute("cx");
+      let enemyY = each.getAttribute("cy");
+      let enemyRadius = each.getAttribute("r");
+      let thingRadius = thing.getAttribute("r");
+      let enemyClasses = each.getAttribute("class")
+      if (Math.abs(enemyX-currentX) <= (parseInt(enemyRadius)+parseInt(thingRadius)) &&
+      Math.abs(enemyY-currentY) <= (parseInt(enemyRadius)+parseInt(thingRadius))) {
+        if (enemyClasses.includes('enemy')) {
+          if (recentHits.includes(thing.id)) {return;}
+          svg.removeChild(each);
+          svg.removeChild(thing);
+          recentHits.push(thing.id)
+          enemiesLeft = Array.from(svg.childNodes).filter((node) => {
+            if (node.classList && Array.from(node.classList).includes('enemy')) {
+              return true
+            } else {
+              return false;
+            }
+          })
+          
+          if (enemiesLeft.length === 0) {
+            let [viewBoxX,viewBoxY,viewBoxWidth,viewBoxHeight] = svg.getAttribute("viewBox").split(" ")
+            if ((viewBoxWidth) < 400) {
+              svg.setAttribute("viewBox", `${viewBoxX} ${viewBoxY} ${viewBoxWidth*1.3} ${viewBoxHeight*1.3}`);
+              player.setAttribute("cx", viewBoxWidth)
+              player.setAttribute("cy", viewBoxHeight)
+              generateEnemies();
+            } else {
+              // resolve();
+              var winMessage = document.createElementNS("http://www.w3.org/2000/svg", 'text');
+              var textNode = document.createTextNode("YOU WIN!");
+              winMessage.setAttribute("x", viewBoxWidth/2)
+              winMessage.setAttribute("y", viewBoxHeight/2)
+              winMessage.setAttribute("text-anchor", "middle")
+              winMessage.appendChild(textNode);
+              svg.appendChild(winMessage)
+            }
           }
-          generateEnemies();
         }
-        return;
+      } else {
+        resolve()
       }
-        
-    }
+    })
   })
 }
 
@@ -238,6 +265,7 @@ generatePlayer = () => {
   let [viewBoxX,viewBoxY,viewBoxWidth,viewBoxHeight] = svg.getAttribute("viewBox").split(" ")
   player = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
   player.setAttribute("id", "player");
+  player.setAttribute("class", "player");
   player.setAttribute("cx", viewBoxWidth/2);
   player.setAttribute("cy", viewBoxHeight/2);
   player.setAttribute("r", 2);

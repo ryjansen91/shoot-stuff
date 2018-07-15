@@ -2,7 +2,7 @@ var body = document.getElementById('body');
 var enemies = document.getElementsByClassName('enemy')
 var svg = document.getElementById('svg');
 
-
+let nodeListId
 var starttime
 var timestamp
 let stopAnimation37, stopAnimation38, stopAnimation39, stopAnimation40, stopAnimation65, stopAnimation87, stopAnimation68, stopAnimation83
@@ -12,6 +12,7 @@ let stop
 let bulletColor = '#EB01A5'
 
 body.addEventListener("mousedown", (event)=> {
+  event.preventDefault();
   stop = false;
   clickX = event.clientX
   clickY = event.clientY
@@ -19,7 +20,7 @@ body.addEventListener("mousedown", (event)=> {
   timer = this.setInterval(() => {
     if (stop) return;
     createThing(event);
-  }, 100);
+  }, 150);
 
   mouseMove = (event) => {
     clickX = event.clientX;
