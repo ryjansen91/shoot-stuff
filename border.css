@@ -1,0 +1,13 @@
+.svg-container, .body {
+  width: 100%;
+  height: 100%;
+  background-color: #eee;
+}
+
+.svg {
+  /* position:absolute;
+  left:0;
+  top:0; */
+  background-color: #c0ffee;
+
+}
